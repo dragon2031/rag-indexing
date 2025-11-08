@@ -1,0 +1,27 @@
+*.pyc
+__pycache__/
+.env
+.venv/
+.coverage
+.pytest_cache/
+.pytype/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Distribution
+dist/
+build/
+*.egg-info/
+
+# Testing
+htmlcov/
+.tox/
+.nox/
+.coverage.*
