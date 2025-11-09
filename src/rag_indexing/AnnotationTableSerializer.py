@@ -17,8 +17,20 @@ from docling_core.types.doc.document import (
 )
 from typing_extensions import override
 
+from rag_indexing.config import Config, default_config
+
 
 class AnnotationTableSerializer(MarkdownTableSerializer):
+    def __init__(self, config: Optional[Config] = None):
+        """
+        Initialize the Annotation Table Serializer.
+        
+        Args:
+            config: Configuration object. If not provided, uses default_config.
+        """
+        super().__init__()
+        self.config = config or default_config
+    
     @override
     def serialize(
         self,
@@ -43,7 +55,8 @@ class AnnotationTableSerializer(MarkdownTableSerializer):
         # appending table caption if exists:
         caption = item.caption_text(doc=doc)
         if caption:
-            text_parts.append(f"<!-- Table caption: {caption} -->")
+            caption_text = self.config.serializer.TABLE_CAPTION_TEMPLATE.format(caption=caption)
+            text_parts.append(caption_text)
 
         # appending metadata/annotations:
         if item.meta:
@@ -52,7 +65,11 @@ class AnnotationTableSerializer(MarkdownTableSerializer):
                 if value:
                     meta_info.append(f"{key}: {value}")
             if meta_info:
-                text_parts.append(f"<!-- Table metadata: {', '.join(meta_info)} -->")
+                metadata_text = self.config.serializer.TABLE_METADATA_TEMPLATE.format(
+                    metadata=', '.join(meta_info)
+                )
+                text_parts.append(metadata_text)
 
-        text_res = (separator or "\n").join(text_parts)
+        sep = separator or self.config.serializer.DEFAULT_SEPARATOR
+        text_res = sep.join(text_parts)
         return create_ser_result(text=text_res, span_source=item)

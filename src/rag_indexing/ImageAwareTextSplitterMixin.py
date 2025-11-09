@@ -105,7 +105,7 @@ class ImageAwareTextSplitterMixin:
 
         for i, block in enumerate(image_blocks):
             placeholder = f"\n__IMAGE_BLOCK_{i}__\n"
-            placeholder_map[placeholder] = block
+            placeholder_map[placeholder.strip()] = block
             modified_text = modified_text.replace(block.content, placeholder)
 
         return modified_text, placeholder_map
@@ -171,44 +171,113 @@ class ImageAwareTextSplitterMixin:
 
         return [c for c in result if c]
 
+    # def _restore_contextual_old(
+    #         self,
+    #         chunks: List[str],
+    #         placeholder_map: Dict[str, ImageBlock]
+    # ) -> List[str]:
+    #     """策略：智能决策"""
+    #     result = []
+    #
+    #     for chunk in chunks:
+    #         has_image = any(p in chunk for p in placeholder_map.keys())
+    #
+    #         if not has_image:
+    #             result.append(chunk.strip())
+    #             continue
+    #
+    #         # 找到包含的图片块
+    #         for placeholder, block in placeholder_map.items():
+    #             if placeholder not in chunk:
+    #                 continue
+    #
+    #             # 决策：合并还是独立
+    #             should_merge = len(block.clean_text) < self.image_merge_threshold
+    #
+    #             if should_merge:
+    #                 # 合并：内联格式
+    #                 inline_text = f"\n\n📷 **图片**: {block.clean_text}\n\n"
+    #                 chunk = chunk.replace(placeholder, inline_text)
+    #             else:
+    #                 # 独立：分成多个chunk
+    #                 parts = chunk.split(placeholder)
+    #                 for part in parts:
+    #                     if part.strip():
+    #                         result.append(part.strip())
+    #                 result.append(f"[IMAGE]\n{block.clean_text}")
+    #                 chunk = ""  # 标记已处理
+    #                 break
+    #
+    #         if chunk.strip():
+    #             result.append(chunk.strip())
+    #
+    #     return [c for c in result if c]
+    #
+    # # In ImageAwareTextSplitterMixin class
+
     def _restore_contextual(
             self,
             chunks: List[str],
             placeholder_map: Dict[str, ImageBlock]
     ) -> List[str]:
-        """策略：智能决策"""
-        result = []
+        """
+        策略：智能决策
+        [BUG修复版本 - 支持单个 chunk 内有多个占位符]
+        """
+        final_chunks = []
+        # 编译一个正则表达式来一次性找到所有占位符
+        # 这比循环 placeholder_map 更高效且能保证顺序
+        placeholder_regex = re.compile(f"({'|'.join(re.escape(p) for p in placeholder_map.keys())})")
 
         for chunk in chunks:
-            has_image = any(p in chunk for p in placeholder_map.keys())
+            # 查找当前 chunk 中的所有占位符匹配项
+            matches = list(placeholder_regex.finditer(chunk))
 
-            if not has_image:
-                result.append(chunk.strip())
+            # 如果没有图片，直接添加并继续
+            if not matches:
+                if chunk.strip():
+                    final_chunks.append(chunk.strip())
                 continue
 
-            # 找到包含的图片块
-            for placeholder, block in placeholder_map.items():
-                if placeholder not in chunk:
-                    continue
+            # 按顺序处理文本和图片
+            current_pos = 0
+            pending_text = ""
 
-                # 决策：合并还是独立
+            for match in matches:
+                placeholder = match.group(1)
+                block = placeholder_map[placeholder]
+
+                # 1. 添加占位符之前的文本
+                text_before = chunk[current_pos:match.start()].strip()
+                if text_before:
+                    pending_text += " " + text_before if pending_text else text_before
+
+                # 2. 决策：合并还是独立
                 should_merge = len(block.clean_text) < self.image_merge_threshold
 
                 if should_merge:
-                    # 合并：内联格式
+                    # 合并：将图片内联格式附加到待处理文本中
                     inline_text = f"\n\n📷 **图片**: {block.clean_text}\n\n"
-                    chunk = chunk.replace(placeholder, inline_text)
+                    pending_text += inline_text
                 else:
-                    # 独立：分成多个chunk
-                    parts = chunk.split(placeholder)
-                    for part in parts:
-                        if part.strip():
-                            result.append(part.strip())
-                    result.append(f"[IMAGE]\n{block.clean_text}")
-                    chunk = ""  # 标记已处理
-                    break
+                    # 独立：
+                    # a) 先将之前累积的文本作为一个 chunk
+                    if pending_text.strip():
+                        final_chunks.append(pending_text.strip())
+                        pending_text = ""  # 重置
+                    # b) 将图片本身作为一个独立的 chunk
+                    final_chunks.append(f"[IMAGE]\n{block.clean_text}")
 
-            if chunk.strip():
-                result.append(chunk.strip())
+                # 3. 更新游标位置
+                current_pos = match.end()
 
-        return [c for c in result if c]
+            # 处理最后一个占位符之后的剩余文本
+            remaining_text = chunk[current_pos:].strip()
+            if remaining_text:
+                pending_text += " " + remaining_text if pending_text else remaining_text
+
+            # 添加最后累积的文本（如果存在）
+            if pending_text.strip():
+                final_chunks.append(pending_text.strip())
+
+        return [c for c in final_chunks if c]
