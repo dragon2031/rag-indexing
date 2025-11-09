@@ -19,7 +19,7 @@ def main():
     """Main function for the rag_indexing package."""
     print("Hello from rag_indexing!")
     proj_path = Path(sys.prefix).parent
-    input_file_path = proj_path.__str__() + "/scratch/input/房地产行业周度观察diy.pptx"
+    input_file_path = proj_path.__str__() + "/scratch/input/房地产行业周度观察diy.docx"
 
     res = DoclingLoader(input_file_path).load_document()
 

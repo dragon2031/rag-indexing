@@ -7,7 +7,7 @@ from docling.datamodel.pipeline_options import PdfPipelineOptions, PictureDescri
     PictureDescriptionVlmOptions, granite_picture_description, VlmPipelineOptions, ConvertPipelineOptions, \
     smolvlm_picture_description
 from docling.datamodel.pipeline_options_vlm_model import ApiVlmOptions, ResponseFormat
-from docling.document_converter import DocumentConverter, PdfFormatOption, PowerpointFormatOption
+from docling.document_converter import DocumentConverter, PdfFormatOption, PowerpointFormatOption, WordFormatOption
 from docling.pipeline.vlm_pipeline import VlmPipeline
 from docling_core.transforms.chunker.hierarchical_chunker import TripletTableSerializer
 from docling_core.transforms.serializer.markdown import MarkdownDocSerializer, MarkdownParams
@@ -146,7 +146,10 @@ class DoclingLoader:
                 ),
                 InputFormat.PPTX: PowerpointFormatOption(
                     pipeline_options=convt_p_options,
-                )
+                ),
+                InputFormat.DOCX: WordFormatOption(
+                    pipeline_options=convt_p_options,
+                ),
 
             }
         )
