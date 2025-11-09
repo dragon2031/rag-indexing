@@ -156,7 +156,7 @@ class DoclingLoader:
 
         res = converter.convert(self.file_path)
 
-        ResultPostprocessor(res).process()
+        # ResultPostprocessor(res).process()
 
         print("pic/tbl annotation show::::::")
         for element, _level in res.document.iterate_items():
