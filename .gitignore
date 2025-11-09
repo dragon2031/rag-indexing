@@ -25,3 +25,5 @@ htmlcov/
 .tox/
 .nox/
 .coverage.*
+
+.scratch/

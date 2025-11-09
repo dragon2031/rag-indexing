@@ -1,1 +1,9 @@
 # Project dependencies will be listed here
+# RAG Indexing
+
+# Docling
+docling >=2.61.1
+langchain >=1.0.5
+langchain-text-splitters~=1.0.0
+langchain-openai~=1.0.2
+langchain-core~=1.0.4
