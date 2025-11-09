@@ -11,6 +11,7 @@ dmypy.json
 
 # IDE
 .idea/
+.idea
 .vscode/
 *.swp
 *.swo
@@ -27,3 +28,4 @@ htmlcov/
 .coverage.*
 
 .scratch/
+/.idea/
