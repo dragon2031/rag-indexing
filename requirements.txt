@@ -8,3 +8,8 @@ langchain-text-splitters~=1.0.0
 langchain-openai~=1.0.2
 langchain-core~=1.0.4
 docling-hierarchical-pdf>=0.1.2
+
+# Google Drive Activity API (Service Account 认证)
+google-auth>=2.23.0
+google-auth-httplib2>=0.1.1
+google-api-python-client>=2.100.0
