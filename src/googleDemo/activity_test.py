@@ -1,12 +1,17 @@
 """
 Google Drive Activity API 示例
 用于查看指定文件夹下的活动记录
-使用 Service Account 认证
+支持两种认证方式：
+1. Service Account 认证（适合服务器端应用）
+2. OAuth 2.0 用户认证（适合个人使用）
 """
 
 from google.oauth2 import service_account
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 import os
+import pickle
 from datetime import datetime
 
 # API 权限范围
@@ -15,15 +20,73 @@ SCOPES = [
     'https://www.googleapis.com/auth/drive.readonly'
 ]
 
-# Service Account 密钥文件路径
-SERVICE_ACCOUNT_FILE = 'service-account-key.json'
+# 认证方式配置
+# 可选值: 'service_account' 或 'oauth'
+AUTH_METHOD = 'oauth'  # 默认使用 OAuth 2.0 认证
 
-# 如果需要模拟特定用户（Domain-wide Delegation），设置此邮箱
-# 留空则使用 Service Account 本身的身份
+# Service Account 配置
+SERVICE_ACCOUNT_FILE = 'service-account-key.json'
 DELEGATED_USER_EMAIL = None  # 例如: 'user@yourdomain.com'
 
+# OAuth 2.0 配置
+OAUTH_CREDENTIALS_FILE = 'credentials.json'  # OAuth 客户端密钥文件
+OAUTH_TOKEN_FILE = 'token.pickle'  # 保存的访问令牌
 
-def get_credentials():
+
+def get_credentials_oauth():
+    """使用 OAuth 2.0 获取用户凭证"""
+    creds = None
+    
+    # 检查是否已有保存的令牌
+    if os.path.exists(OAUTH_TOKEN_FILE):
+        with open(OAUTH_TOKEN_FILE, 'rb') as token:
+            creds = pickle.load(token)
+    
+    # 如果没有有效凭证，进行授权流程
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            # 刷新过期的令牌
+            print('刷新访问令牌...')
+            creds.refresh(Request())
+        else:
+            # 执行新的授权流程
+            if not os.path.exists(OAUTH_CREDENTIALS_FILE):
+                raise FileNotFoundError(
+                    f'OAuth 客户端密钥文件未找到: {OAUTH_CREDENTIALS_FILE}\n'
+                    f'请从 Google Cloud Console 下载 OAuth 2.0 客户端 ID JSON 文件\n'
+                    f'详见: https://console.cloud.google.com/apis/credentials'
+                )
+            
+            print('开始 OAuth 2.0 授权流程...')
+            
+            flow = InstalledAppFlow.from_client_secrets_file(
+                OAUTH_CREDENTIALS_FILE, SCOPES
+            )
+            
+            # 使用控制台模式，适合无头服务器
+            flow.redirect_uri = 'urn:ietf:wg:oauth:2.0:oob'
+            auth_url, _ = flow.authorization_url(prompt='consent')
+            
+            print('\n' + '='*70)
+            print('请在浏览器中打开以下 URL 进行授权：')
+            print(auth_url)
+            print('='*70)
+            print('\n授权后，Google 会显示一个授权码')
+            
+            code = input('请将授权码粘贴到这里: ').strip()
+            
+            flow.fetch_token(code=code)
+            creds = flow.credentials
+            print('授权成功！')
+        
+        # 保存令牌供下次使用
+        with open(OAUTH_TOKEN_FILE, 'wb') as token:
+            pickle.dump(creds, token)
+    
+    return creds
+
+
+def get_credentials_service_account():
     """使用 Service Account 获取凭证"""
     if not os.path.exists(SERVICE_ACCOUNT_FILE):
         raise FileNotFoundError(
@@ -41,6 +104,18 @@ def get_credentials():
         credentials = credentials.with_subject(DELEGATED_USER_EMAIL)
     
     return credentials
+
+
+def get_credentials():
+    """根据配置选择认证方式"""
+    if AUTH_METHOD == 'oauth':
+        print(f'使用 OAuth 2.0 用户认证')
+        return get_credentials_oauth()
+    elif AUTH_METHOD == 'service_account':
+        print(f'使用 Service Account 认证')
+        return get_credentials_service_account()
+    else:
+        raise ValueError(f'不支持的认证方式: {AUTH_METHOD}，请使用 "oauth" 或 "service_account"')
 
 
 def format_timestamp(timestamp_str):
@@ -367,6 +442,8 @@ if __name__ == '__main__':
     FOLDER_ID = '10SM5DuAT_ijtGdTtjCfikZjV4jXMOh1h'
     
     print('Google Drive Activity API 示例')
+    print('=' * 100)
+    print(f'认证方式: {AUTH_METHOD}')
     print('=' * 100)
     
     # 方法 1: 获取文件夹及其子项的最近 10 条活动

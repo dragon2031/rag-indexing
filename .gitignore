@@ -29,3 +29,6 @@ htmlcov/
 
 .scratch/
 /.idea/
+
+credentials.json
+token.pickle
