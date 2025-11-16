@@ -24,14 +24,14 @@ class APIConfig:
     """API configuration for LLM services."""
     
     # Gemini API Configuration
-    GEMINI_API_KEY: str = "AIzaSyDShbYrwu7UJgH0SsKgXn1DGPGmnRaFBaQleo"
+    GEMINI_API_KEY: str = "AIzmnRao"
     GEMINI_BASE_URL: str = "https://generativelanguage.googleapis.com/v1beta/openai"
     GEMINI_CHAT_URL: str = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
     GEMINI_MODEL: str = "gemini-2.5-flash"
     
     # Alternative API key (if needed)
-    ALTERNATIVE_API_KEY: str = "AIzaSyBvqydy0JtCypEPsoBAVXLqYKV6RRBSvGkleo"
-    
+    # ALTERNATIVE_API_KEY: str = "AIzaSy"
+
     # API Request Settings
     DEFAULT_TIMEOUT: int = 90
     DEFAULT_TEMPERATURE: float = 0.3
